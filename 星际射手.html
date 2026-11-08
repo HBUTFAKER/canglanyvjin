@@ -1,0 +1,1102 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>苍蓝余烬 Azure Embers</title>
+<style>
+  :root {
+    --bg: #030406;
+    --panel: #07090d;
+    --panel2: #0d1118;
+    --line: #1c232e;
+    --line2: #2a3442;
+    --cyan: #4fd6ff;
+    --cyan2: #2b9bff;
+    --purple: #a86bff;
+    --pink: #ff4d8f;
+    --gold: #e8c07a;
+    --gold2: #c9a25a;
+    --orange: #ff8a3c;
+    --danger: #ff5d5d;
+    --green: #6dffb0;
+    --text: #dfe6f0;
+    --muted: #7d8899;
+    --dim: #465060;
+    /* 金属质感（暗黑军械，参考雷电风） */
+    --metal-hi: #6a7686;   /* 金属高光 */
+    --metal-mid: #39424e;  /* 金属中调 */
+    --metal-lo: #12161d;   /* 金属暗部 */
+    --metal-edge: #8b98ab; /* 金属亮边 */
+  }
+  * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  html, body {
+    width:100%; height:100%;
+    background: var(--bg); color: var(--text);
+    font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
+    overflow:hidden; touch-action:none; user-select:none; -webkit-user-select:none;
+  }
+  #game { position:absolute; inset:0; display:block; touch-action:none; }
+
+  .ovl {
+    position:absolute; inset:0; z-index:20;
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    background: rgba(5,6,8,0.92);
+    text-align:center; padding:20px;
+  }
+  .ovl.hidden { display:none; }
+  /* CG 全屏覆盖：取消居中与内边距，图片铺满 */
+  #cgOvl.ovl { align-items:stretch; justify-content:stretch; padding:0; background:rgba(5,6,8,.6); }
+  .title { font-size:36px; letter-spacing:3px; font-weight:800;
+    background:linear-gradient(180deg,#e8edf5,#7c8aa0 55%,#3a4656);
+    -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent;
+    text-shadow:none; filter:drop-shadow(0 2px 2px rgba(0,0,0,.7)); }
+  .title em { font-style:normal; background:linear-gradient(180deg,#7ce4ff,#2b9bff);
+    -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent;
+    filter:drop-shadow(0 0 10px rgba(79,214,255,.45)); }
+  .sub { color:var(--muted); font-size:12px; letter-spacing:4px; margin:4px 0 22px; }
+
+  .btn {
+    display:block; width:min(300px, 82vw); padding:13px 18px; margin:7px auto;
+    background:
+      repeating-linear-gradient(90deg, rgba(255,255,255,.03) 0 1px, transparent 1px 3px),
+      linear-gradient(180deg,#3a4450 0%, #252d39 40%, #171d26 62%, #0b0f15 100%);
+    border:1px solid #4a5563; border-radius:5px;
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.22), inset 0 -2px 5px rgba(0,0,0,.6),
+      inset 0 0 0 1px rgba(0,0,0,.3), 0 1px 0 rgba(0,0,0,.6), 0 3px 9px rgba(0,0,0,.6);
+    color:var(--text); font-size:15px; letter-spacing:1px; cursor:pointer;
+    transition: transform .12s, border-color .12s, box-shadow .12s, filter .12s; text-align:left;
+    text-shadow:0 1px 2px rgba(0,0,0,.8);
+    clip-path:polygon(0 0, calc(100% - 10px) 0, 100% 10px, 100% 100%, 10px 100%, 0 calc(100% - 10px));
+  }
+  .btn:hover { filter:brightness(1.15); border-color:var(--metal-edge); }
+  .btn:active { transform:translateY(1px); border-color:var(--cyan);
+    box-shadow:inset 0 2px 7px rgba(0,0,0,.75), 0 0 16px rgba(79,214,255,.4); }
+  .btn .h { font-weight:700; font-size:16px; display:flex; align-items:center; gap:8px; }
+  .btn .d { display:block; font-size:11.5px; color:#a6b0bf; margin-top:3px; letter-spacing:.5px; }
+  .btn.primary { background:
+      repeating-linear-gradient(90deg, rgba(255,255,255,.04) 0 1px, transparent 1px 3px),
+      linear-gradient(180deg,#33506e 0%, #22405a 40%, #162a3c 62%, #0a1826 100%);
+    border-color:#6b8fb0;
+    box-shadow:inset 0 1px 0 rgba(160,210,255,.35), inset 0 -2px 5px rgba(0,0,0,.6), 0 0 12px rgba(43,155,255,.25), 0 3px 9px rgba(0,0,0,.5); }
+
+  .row { display:flex; gap:10px; justify-content:center; width:100%; }
+
+  /* —— 暂停菜单音量调节 —— */
+  .pause-volume { width:min(300px,82vw); margin:10px auto 2px; padding:12px 14px;
+    background:linear-gradient(180deg,#171d26,#0b0f15); border:1px solid #333d4d; border-radius:8px; }
+  .pv-row { display:flex; align-items:center; gap:10px; margin:8px 0; }
+  .pv-label { flex:0 0 52px; font-size:13px; color:var(--text); letter-spacing:.5px; }
+  .pv-slider { flex:1; -webkit-appearance:none; appearance:none; height:6px; border-radius:3px;
+    background:linear-gradient(90deg,var(--cyan),#2b9bff); outline:none; cursor:pointer; }
+  .pv-slider::-webkit-slider-thumb { -webkit-appearance:none; appearance:none; width:18px; height:18px; border-radius:50%;
+    background:radial-gradient(circle at 35% 30%,#fff,#cfe8ff 60%,#7fb8e8); border:1px solid var(--cyan);
+    box-shadow:0 0 8px rgba(79,214,255,.6); cursor:pointer; }
+  .pv-slider::-moz-range-thumb { width:18px; height:18px; border-radius:50%;
+    background:radial-gradient(circle at 35% 30%,#fff,#cfe8ff 60%,#7fb8e8); border:1px solid var(--cyan);
+    box-shadow:0 0 8px rgba(79,214,255,.6); cursor:pointer; }
+  .pv-val { flex:0 0 40px; text-align:right; font-size:12px; color:var(--cyan); font-weight:600; }
+  /* 主菜单底部功能栏 */
+  #menu.ovl { justify-content:center; gap:6px; padding:max(28px, env(safe-area-inset-top)) 20px max(24px, env(safe-area-inset-bottom)); background:rgba(3,4,6,.55); }
+  .menu-bg { position:absolute; inset:0; z-index:0; pointer-events:none; overflow:hidden; }
+  .menu-bg img { width:100%; height:100%; object-fit:cover; display:block; opacity:.55; }
+  .menu-bg::after { content:''; position:absolute; inset:0;
+    background:linear-gradient(180deg, rgba(3,4,6,.35) 0%, rgba(3,4,6,.15) 40%, rgba(3,4,6,.85) 100%); }
+  /* 让菜单内容浮在背景之上 */
+  #menu > *:not(.menu-bg):not(.menu-bottom) { position:relative; z-index:2; }
+  .menu-bottom { position:relative; z-index:2; margin-top:10px;
+    display:flex; gap:8px; justify-content:center; flex-wrap:wrap; padding:0 16px 8px; }
+  .btn.bottom-btn { width:auto; min-width:64px; padding:10px 14px; margin:0; font-size:13px;
+    text-align:center; flex:0 1 auto; white-space:nowrap; }
+  .menu-grid { width:min(340px,88vw); display:grid; grid-template-columns:1fr 1fr; gap:9px; margin:4px 0 14px; }
+  .menu-grid .cell {
+    background:
+      repeating-linear-gradient(90deg, rgba(255,255,255,.03) 0 1px, transparent 1px 3px),
+      linear-gradient(180deg,#333c48 0%, #1f2732 42%, #121821 70%, #0a0e14 100%);
+    border:1px solid #47525f; border-radius:6px; padding:13px 12px; cursor:pointer; text-align:left; transition:.12s;
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.2), inset 0 -2px 6px rgba(0,0,0,.55),
+      inset 0 0 0 1px rgba(0,0,0,.3), 0 2px 7px rgba(0,0,0,.5);
+    clip-path:polygon(0 0, calc(100% - 8px) 0, 100% 8px, 100% 100%, 8px 100%, 0 calc(100% - 8px));
+  }
+  .menu-grid .cell:hover { filter:brightness(1.16); border-color:var(--cyan); }
+  .menu-grid .cell:active { transform:translateY(1px); }
+  .menu-grid .cell .ic { color:var(--cyan); display:flex; align-items:center; height:24px;
+    filter:drop-shadow(0 0 6px rgba(79,214,255,.55)); }
+  .menu-bottom .btn svg { vertical-align:-3px; color:var(--gold); filter:drop-shadow(0 0 4px rgba(232,192,122,.5)); }
+  .menu-grid .cell .t { font-weight:700; font-size:14px; margin-top:4px; text-shadow:0 1px 2px rgba(0,0,0,.8); }
+  .menu-grid .cell .s { font-size:10.5px; color:#9aa5b4; margin-top:2px; line-height:1.4; }
+
+  .stat-line { color:var(--muted); font-size:13px; margin-top:12px; }
+  .stat-line b { color:var(--text); }
+
+  /* —— 难度选择 —— */
+  .diff-row { display:flex; align-items:center; justify-content:center; gap:6px; margin-top:8px; }
+  .diff-label { font-size:12px; color:var(--muted); letter-spacing:1px; }
+  .diff-hint { font-size:11px; font-weight:700; letter-spacing:.5px; }
+  .diff-btn { padding:6px 14px; font-size:13px; font-weight:700; letter-spacing:1px; cursor:pointer;
+    color:var(--muted); background:linear-gradient(180deg,#242c38,#121821); border:1px solid #3a4552; border-radius:6px;
+    transition:.12s; }
+  .diff-btn:hover { filter:brightness(1.15); }
+  .diff-btn.active { color:#fff; border-color:var(--cyan); box-shadow:0 0 10px rgba(79,214,255,.4), inset 0 1px 0 rgba(255,255,255,.2); }
+  .diff-btn[data-diff="0"].active { border-color:#6dffb0; color:#6dffb0; box-shadow:0 0 10px rgba(109,255,176,.4); }
+  .diff-btn[data-diff="2"].active { border-color:#ff9a3c; color:#ff9a3c; box-shadow:0 0 10px rgba(255,154,60,.4); }
+  .diff-btn[data-diff="3"].active { border-color:#ff3c3c; color:#ff3c3c; box-shadow:0 0 10px rgba(255,60,60,.4); }
+
+  #hud { position:absolute; top:0; left:0; right:0; padding:12px 14px;
+    padding-top:max(12px, env(safe-area-inset-top)); display:flex; justify-content:space-between;
+    align-items:flex-start; z-index:10; pointer-events:none; font-size:14px; }
+  #hud .L, #hud .R { display:flex; flex-direction:column; gap:2px; }
+  #hud .R { text-align:right; }
+  #hud .wave { color:var(--cyan); font-weight:800; letter-spacing:1px; }
+  #hud .threat { color:var(--orange); font-size:12px; font-weight:600; }
+  #hud .muted { color:var(--muted); font-size:12px; }
+  #hud .dailyBuff { margin-top:4px; padding:3px 8px; font-size:12px; font-weight:700; border-radius:6px;
+    border:1px solid var(--gold); color:var(--gold); background:rgba(255,215,0,.12);
+    letter-spacing:.5px; text-shadow:0 0 6px rgba(255,215,0,.5); }
+  #hud .dailyBuff.hidden { display:none; }
+  #hud .btn-s { pointer-events:auto; background:linear-gradient(180deg,#1b222d,#0d1219); border:1px solid #333d4d;
+    color:var(--text); border-radius:9px; padding:5px 10px; font-size:13px; cursor:pointer;
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.08); }
+  #hud .btn-s:active { border-color:var(--cyan); }
+  #bombs { display:flex; gap:6px; justify-content:flex-end; margin-top:6px; align-items:center; }
+  #bombs .b { width:16px; height:16px; border-radius:50%; background:#20262f; border:1px solid #3a4568;
+    position:relative; box-shadow:inset 0 1px 2px rgba(0,0,0,.6); }
+  /* 用的小圆点 + 顶部引线做成微型炸弹图标 */
+  #bombs .b::after { content:''; position:absolute; top:-4px; left:50%; transform:translateX(-50%);
+    width:2px; height:4px; background:#4a5563; border-radius:1px; }
+  #bombs .b.on { background:radial-gradient(circle at 35% 30%, #ffe0a0, #ff8a3c 70%); box-shadow:0 0 9px #ff8a3c; border-color:#ffd08a; }
+  #bombs .b.on::after { background:#ffb84d; }
+
+  /* 抬到底部推进条上方，避免圆钮压住进度轨道 */
+  #bombBtn { position:absolute; right:16px; bottom:max(32px, calc(env(safe-area-inset-bottom) + 32px));
+    width:60px; height:60px; border-radius:50%; z-index:11; pointer-events:auto; cursor:pointer;
+    background:radial-gradient(circle at 35% 30%, #ffd9a0, #ff7a3c 70%);
+    border:2px solid #ffe0b0; color:#3a1d00; font-weight:800; font-size:16px;
+    box-shadow:0 0 18px rgba(255,140,60,.55); }
+  #bombBtn:active { transform:scale(.9); }
+  #bombBtn .n { position:absolute; top:-7px; right:-7px; width:20px; height:20px; border-radius:50%;
+    background:#111; border:1px solid var(--orange); color:var(--orange); font-size:12px; line-height:18px; }
+
+  /* 练习模式专用：战斗内装备调参快捷钮（炸弹钮上方） */
+  #arsenalBtn { position:absolute; right:19px; bottom:max(105px, calc(env(safe-area-inset-bottom) + 105px));
+    width:54px; height:54px; border-radius:50%; z-index:11; pointer-events:auto; cursor:pointer;
+    font-size:22px; line-height:1;
+    background:radial-gradient(circle at 35% 30%, #d6ecff, #3aa0ff 68%);
+    border:2px solid #cfe8ff; color:#06121f;
+    box-shadow:0 0 16px rgba(58,160,255,.55), inset 0 2px 4px rgba(255,255,255,.5); }
+  #arsenalBtn:active { transform:scale(.9); }
+  #arsenalBtn.hidden { display:none; }
+  #pauseArsenalBtn.hidden { display:none; }
+
+  /* 装备调参面板：细金属滚动条（内容较长时可滚） */
+  #arsenalOvl .toast.panel::-webkit-scrollbar { width:6px; }
+  #arsenalOvl .toast.panel::-webkit-scrollbar-track { background:rgba(0,0,0,.35); }
+  #arsenalOvl .toast.panel::-webkit-scrollbar-thumb {
+    background:linear-gradient(180deg,#5a6674,#333d4d); border-radius:3px; }
+
+  /* 底部操作提示：抬到推进条上方，右侧留出炸弹圆钮的宽度并保持视觉居中 */
+  .tip { position:absolute; bottom:100px; left:0; right:96px; padding-left:96px;
+    text-align:center; color:var(--dim); font-size:11px; z-index:9; pointer-events:none; }
+
+  /* ============================================================
+     右下角关卡推进条（PvZ 式：战机沿条由左推进到右）
+     · 左侧已推进 = 明亮发光；右侧未推进 = 半透明暗色
+     · 无尽 / 练习模式：战机循环巡航 + 「无限进程」提示
+     ============================================================ */
+  #runProgress {
+    position:absolute; right:88px; bottom:max(56px, calc(env(safe-area-inset-bottom) + 56px));
+    width:min(232px, 54vw); z-index:9; pointer-events:none;
+  }
+  #runProgress.hidden { display:none; }
+
+  #runProgress .rp-head {
+    display:flex; justify-content:space-between; align-items:baseline; gap:8px;
+    padding:0 2px 4px;
+    font-size:11px; font-weight:700; letter-spacing:1px; line-height:1;
+    text-shadow:0 1px 3px rgba(0,0,0,.95);
+  }
+  #runProgress .rp-label { flex:1 1 auto; min-width:0; color:var(--cyan);
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  #runProgress .rp-right { flex:0 0 auto; color:var(--gold); white-space:nowrap; }
+
+  /* 轨道容器：不裁剪，让战机可以探出条外 */
+  #runProgress .rp-trackwrap { position:relative; height:13px; }
+  /* 轨道本体：只负责裁剪填充 */
+  #runProgress .rp-track {
+    position:absolute; inset:0; border-radius:7px; overflow:hidden;
+    background:rgba(7,10,15,.66);                       /* 未推进 = 半透明暗色 */
+    border:1px solid rgba(96,118,145,.5);
+    box-shadow:inset 0 2px 4px rgba(0,0,0,.78), 0 1px 0 rgba(255,255,255,.05);
+  }
+  #runProgress .rp-fill {
+    height:100%; width:0%;
+    background:linear-gradient(90deg,#1f8fdd,#4fd6ff 52%,#d8f8ff);   /* 已推进 = 明亮 */
+    box-shadow:0 0 13px rgba(79,214,255,.8), inset 0 1px 0 rgba(255,255,255,.65);
+    transition:width .1s linear;
+  }
+  /* 战机：跟着推进度由左向右滑行 */
+  #runProgress .rp-plane-wrap {
+    position:absolute; top:50%; left:calc(12px + (100% - 24px) * var(--rp, 0));
+    transform:translate(-50%,-50%);
+    transition:left .12s linear;
+  }
+  #runProgress .rp-plane {
+    display:block; width:24px; height:18px;
+    filter:drop-shadow(0 0 5px rgba(130,232,255,.95)) drop-shadow(0 1px 2px rgba(0,0,0,.9));
+  }
+
+  /* 首领分界标记（小兵阶段终点 65% 处） */
+  #runProgress .rp-boss {
+    position:absolute; top:-1px; bottom:-1px; left:65%; width:2px;
+    background:rgba(255,120,120,.92); box-shadow:0 0 7px rgba(255,70,70,.9);
+  }
+  #runProgress .rp-sweep { display:none; }
+
+  /* 首领阶段：整条转为危险红 */
+  #runProgress.boss .rp-fill {
+    background:linear-gradient(90deg,#8b0016,#d2102c 55%,#ff5a6e);
+    box-shadow:0 0 13px rgba(255,60,80,.78), inset 0 1px 0 rgba(255,255,255,.4);
+  }
+  #runProgress.boss .rp-label { color:#ff8a96; }
+  #runProgress.boss .rp-boss { display:none; }
+  #runProgress.boss .rp-plane .core { fill:#ff9aa4; }
+
+  /* —— 无尽 / 练习：没有终点，战机循环巡航 —— */
+  #runProgress.inf .rp-fill, #runProgress.inf .rp-boss { display:none; }
+  #runProgress.inf .rp-label { color:var(--gold); }
+  #runProgress.inf .rp-right { color:var(--muted); font-weight:600; letter-spacing:.6px; }
+  #runProgress.inf .rp-track {
+    background:
+      repeating-linear-gradient(115deg, rgba(232,192,122,.17) 0 6px, rgba(232,192,122,0) 6px 15px),
+      rgba(11,9,5,.72);
+    border-color:rgba(150,120,60,.6);
+    box-shadow:inset 0 2px 4px rgba(0,0,0,.8), 0 0 10px rgba(232,192,122,.12);
+  }
+  #runProgress.inf .rp-plane { filter:drop-shadow(0 0 5px rgba(255,214,140,.95)) drop-shadow(0 1px 2px rgba(0,0,0,.9)); }
+  #runProgress.inf .rp-plane .core { fill:#e8c07a; }
+  #runProgress.inf .rp-plane-wrap { transition:none; animation:rpPlaneLoop 3.4s linear infinite; }
+  @keyframes rpPlaneLoop {
+    0%   { left:12px;  opacity:0; }
+    10%  { opacity:1; }
+    88%  { opacity:1; }
+    100% { left:calc(100% - 12px); opacity:0; }
+  }
+  /* 无限延伸的扫光 */
+  #runProgress.inf .rp-sweep {
+    display:block; position:absolute; top:0; bottom:0; width:38%;
+    background:linear-gradient(90deg, transparent, rgba(255,224,160,.7), transparent);
+    animation:rpSweep 2.1s linear infinite;
+  }
+  @keyframes rpSweep { from { transform:translateX(-110%); } to { transform:translateX(300%); } }
+
+  /* —— Boss 血条：深红主题 + 装饰 + 艺术字名称 —— */
+  .bossbar { position:absolute; top:64px; left:50%; transform:translateX(-50%);
+    width:min(330px,74vw); z-index:12; pointer-events:none;
+    padding:7px 16px 10px; border-radius:12px;
+    background:linear-gradient(180deg, rgba(30,3,9,.88) 0%, rgba(12,1,4,.80) 100%);
+    border:1px solid rgba(150,20,42,.55);
+    box-shadow:0 0 18px rgba(120,8,26,.45), inset 0 1px 0 rgba(255,120,130,.12); }
+  .bossbar.hidden { display:none; }
+
+  /* 名称：深红艺术字（亮红渐变填充 + 描边阴影 + 外发光 + 斜体） */
+  .bossbar .nm { position:relative; font-size:17px; font-weight:900; font-style:italic;
+    letter-spacing:4px; text-align:center; margin-bottom:7px; padding:0 32px;
+    background:linear-gradient(180deg,#ffe4e7 0%, #ff6474 26%, #e8142f 58%, #96001a 100%);
+    -webkit-background-clip:text; background-clip:text;
+    -webkit-text-fill-color:transparent; color:transparent;
+    filter:drop-shadow(0 1px 0 rgba(0,0,0,.95)) drop-shadow(0 0 10px rgba(255,45,75,.8)); }
+  /* 名称两侧装饰短线（渐变收尾 + 红色微光） */
+  .bossbar .nm::before, .bossbar .nm::after { content:''; position:absolute; top:52%;
+    width:26px; height:2px; border-radius:1px;
+    background:linear-gradient(90deg, transparent, #6b0a18 35%, #d41434);
+    box-shadow:0 0 7px rgba(212,20,52,.75); }
+  .bossbar .nm::before { left:0; }
+  .bossbar .nm::after { right:0; transform:scaleX(-1); }
+
+  /* 轨道：深红黑底 + 深红描边 + 内嵌阴影（金属凹槽感） */
+  .bossbar .bar { position:relative; height:14px; border-radius:8px;
+    background:linear-gradient(180deg,#2a0509,#120205);
+    border:1px solid #7a0a1c;
+    box-shadow:inset 0 2px 5px rgba(0,0,0,.9), 0 0 12px rgba(160,10,30,.35),
+      0 1px 0 rgba(255,120,130,.14); }
+  /* 血量填充：深红渐变（上亮下暗）+ 顶部高光条 */
+  .bossbar .fill { height:100%; border-radius:7px; transition:width .08s;
+    background:
+      linear-gradient(180deg, rgba(255,255,255,.30) 0%, rgba(255,255,255,0) 44%),
+      linear-gradient(180deg,#ff4a5e 0%, #d2102c 38%, #8b0016 74%, #4a000b 100%);
+    box-shadow:inset 0 1px 0 rgba(255,190,195,.35), inset 0 -1px 3px rgba(0,0,0,.6),
+      0 0 12px rgba(220,20,45,.5); }
+  /* 阶段刻度：斜切暗线 */
+  .bossbar .seg { position:absolute; top:0; bottom:0; width:2px;
+    background:linear-gradient(180deg, rgba(0,0,0,.05), rgba(0,0,0,.85), rgba(0,0,0,.05));
+    box-shadow:0 0 4px rgba(255,60,80,.35); }
+  /* 两端菱形装饰块（深红宝石状铆钉） */
+  .bossbar .bar::before, .bossbar .bar::after { content:''; position:absolute; top:50%; z-index:2;
+    width:11px; height:11px; transform:translateY(-50%) rotate(45deg);
+    background:linear-gradient(135deg,#ff6b7c,#c8102e 45%,#5c0210);
+    border:1px solid #ff8a92; box-shadow:0 0 10px rgba(230,30,55,.8); }
+  .bossbar .bar::before { left:-7px; }
+  .bossbar .bar::after { right:-7px; }
+
+  /* LOL 风格玩家血条（金属边框） */
+  .hpbar { position:relative; margin-top:6px; width:min(210px,50vw); align-self:flex-end;
+    height:20px; background:linear-gradient(180deg,#0a0d12,#05070a);
+    border:1px solid #3a4a5a; border-radius:4px; overflow:hidden;
+    clip-path:polygon(0 0, calc(100% - 8px) 0, 100% 8px, 100% 100%, 8px 100%, 0 calc(100% - 8px));
+    box-shadow:inset 0 1px 3px rgba(0,0,0,.8), 0 0 8px rgba(79,214,255,.18), 0 1px 0 rgba(255,255,255,.08); }
+  .hpbar .hpfill { height:100%; background:linear-gradient(180deg,#8fffb2,#2fa34a 55%,#1c6b33);
+    transition:width .15s; box-shadow:inset 0 1px 0 rgba(255,255,255,.4), 0 0 8px rgba(80,220,130,.6);
+    position:relative; }
+  .hpbar .hpfill::after { content:''; position:absolute; top:2px; bottom:2px; right:3px; left:3px;
+    background:repeating-linear-gradient(90deg, rgba(0,0,0,.22) 0 2px, transparent 2px 12px); }
+  .hpbar.low .hpfill { background:linear-gradient(180deg,#ff9090,#c83232 55%,#8a2020);
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.35), 0 0 10px rgba(255,80,80,.65); }
+  .hpbar .hptext { position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
+    font-size:11px; font-weight:800; color:#fff; text-shadow:0 1px 3px rgba(0,0,0,.9), 0 0 6px rgba(0,0,0,.8);
+    letter-spacing:.5px; z-index:2; }
+  .hpbar .hpseg { position:absolute; top:0; bottom:0; width:1px; background:rgba(0,0,0,.45);
+    z-index:1; pointer-events:none; }
+
+  .toast { position:absolute; top:76px; left:50%; transform:translateX(-50%); z-index:25;
+    background:
+      repeating-linear-gradient(90deg, rgba(255,255,255,.025) 0 1px, transparent 1px 3px),
+      linear-gradient(180deg,#252e3a 0%, #161c25 40%, #0b1016 100%);
+    border:1px solid #47525f; border-radius:7px;
+    padding:12px 20px; text-align:center; max-width:82vw;
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.18), inset 0 -2px 5px rgba(0,0,0,.55),
+      inset 0 0 0 1px rgba(0,0,0,.3), 0 8px 40px rgba(0,0,0,.7);
+    pointer-events:none; animation:toastIn .18s ease; }
+  /* 面板型容器：复用 toast 视觉但恢复可点击 */
+  .toast.panel { pointer-events:auto; position:relative; }
+  /* 左上角返回/关闭按钮 */
+  .close-btn { position:absolute; top:10px; left:10px; z-index:5; width:auto; min-width:0;
+    padding:5px 9px; margin:0; font-size:14px; line-height:1; color:var(--text);
+    border-radius:4px; text-align:center; }
+  /* 防御：任何面板里的 `.xxx .btn { width:100% }` 都不许把左上角 ✕ 拉宽（否则 ✕ 会跑到标题上）。
+     用 0,3,0 特异性（.ovl .toast .close-btn）压过 .prac-panel .btn 这类 0,2,0 规则。 */
+  .ovl .toast .close-btn {
+    width:auto; max-width:none; min-width:0; flex:0 0 auto; }
+  /* 面板标题居中但左右留白，避免与左上角 ✕ 重叠 */
+  .toast.panel h3 { padding:0 48px; min-height:26px; display:flex; align-items:center; justify-content:center; }
+  /* —— 半屏布局：商店/机库窗口左半屏上下占满，立绘在右半屏 —— */
+  .half-ovl { align-items:stretch; justify-content:flex-start; padding:0; background:rgba(5,6,8,.85); }
+  .half-panel { width:50%; max-width:none; height:100%; max-height:none; border-radius:0;
+    border-right:1px solid #333d4d; overflow-y:auto; text-align:center; padding:22px 18px;
+    animation:none; }   /* 半屏面板不做 toastIn（translateX(-50%) 会把面板甩出左边） */
+  @media (max-width:600px) { .half-panel { width:100%; } }
+
+  /* —— 练习 / 装备调参：面板靠左，右侧整块留给立绘（不再压住 −/＋ 按钮） —— */
+  .prac-panel { width:min(46%, 480px); padding:22px 16px 0; left:auto; top:auto; transform:none; animation:none;
+    overflow-x:hidden; }
+  .prac-panel .btn:not(.close-btn) { width:100%; max-width:320px; }
+  .prac-panel h3 { padding:0 44px; }
+  .prac-panel > p { text-align:left; margin-bottom:10px; }
+  .sec-t { text-align:left; margin:12px 0 6px; font-size:13px; font-weight:700; color:var(--gold); }
+  .ed-list { display:flex; flex-direction:column; gap:6px; }
+  .prac-foot { position:sticky; bottom:0; margin-top:18px; padding:20px 0 28px;
+    background:linear-gradient(180deg, rgba(11,16,22,0) 0, rgba(11,16,22,.97) 15px, rgba(11,16,22,.99) 100%); }
+  /* 半屏面板滚动条压暗，别用默认亮白 */
+  :where(.half-panel, .toast.panel)::-webkit-scrollbar { width:9px; }
+  :where(.half-panel, .toast.panel)::-webkit-scrollbar-track { background:rgba(0,0,0,.28); }
+  :where(.half-panel, .toast.panel)::-webkit-scrollbar-thumb { background:#39424e; border-radius:5px; border:2px solid rgba(0,0,0,.25); }
+  :where(.half-panel, .toast.panel)::-webkit-scrollbar-thumb:hover { background:#4d5a68; }
+  /* —— 调参行：宽面板单行，窄面板折成两行 —— */
+  .ed-row { display:flex; align-items:center; gap:9px; padding:6px 9px;
+    border:1px solid var(--line); border-radius:5px;
+    background:linear-gradient(180deg,#202832,#141a22); }
+  .ed-thumb { flex:0 0 auto; width:38px; height:38px; border-radius:5px; overflow:hidden;
+    background:#0b0f14; border:1px solid #2b333d; }
+  .ed-thumb img { width:100%; height:100%; object-fit:cover; object-position:center 42%;
+    display:block; transition:filter .15s; }
+  .ed-body { flex:1 1 auto; min-width:0; display:flex; align-items:center; gap:9px; }
+  .ed-name { flex:1 1 auto; min-width:0; font-size:13px; text-align:left;
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .ed-ctl { flex:0 0 auto; display:flex; align-items:center; gap:6px; }
+  .ed-ctl .lv-val { min-width:36px; text-align:center; font-size:13px; font-weight:700; }
+  @media (max-width:760px) {
+    .prac-panel { width:min(60%, 480px); }
+    .ed-body { flex-direction:column; align-items:stretch; gap:5px; }
+    .ed-name { font-size:12.5px; }
+    .ed-ctl { justify-content:space-between; }
+    .ed-ctl .lv-btn { width:23px; height:23px; font-size:13px; }
+  }
+  /* —— 练习右侧：陪练立绘（当前机型的随舰机械师） —— */
+  .prac-art { position:absolute; top:0; right:0; bottom:0; left:min(46%, 480px);
+    overflow:hidden; display:flex; align-items:flex-end; justify-content:flex-end; pointer-events:none; }
+  .prac-art img { width:100%; height:100%; object-fit:cover; object-position:center 26%;
+    opacity:.62; filter:saturate(.92) brightness(1.04); }
+  .prac-art::after { content:''; position:absolute; inset:0;
+    background:
+      linear-gradient(0deg, rgba(5,6,8,.86), rgba(5,6,8,0) 38%),
+      linear-gradient(90deg, rgba(5,6,8,.93), rgba(5,6,8,.1) 38%, rgba(5,6,8,.46)); }
+  .prac-art .pa-cap { position:absolute; z-index:2; right:18px; bottom:max(18px, env(safe-area-inset-bottom));
+    text-align:right; }
+  .prac-art .pa-cap b { display:block; font-size:16px; color:var(--gold); letter-spacing:2px;
+    text-shadow:0 2px 10px rgba(0,0,0,.9); }
+  .prac-art .pa-cap span { display:block; font-size:11px; color:var(--muted); margin-top:4px;
+    text-shadow:0 1px 6px rgba(0,0,0,.9); }
+  @media (max-width:760px) { .prac-art { left:min(60%, 480px); } }
+  @keyframes toastIn { from{opacity:0; transform:translate(-50%,-8px);} to{opacity:1; transform:translate(-50%,0);} }
+  .toast h3 { font-size:15px; margin-bottom:3px; color:var(--gold); }
+  .toast p { font-size:11.5px; color:var(--muted); line-height:1.5; }
+  .toast .opts { margin-top:14px; display:flex; flex-direction:column; gap:8px; }
+  .toast .opt { background:
+      repeating-linear-gradient(90deg, rgba(255,255,255,.025) 0 1px, transparent 1px 3px),
+      linear-gradient(180deg,#333c48 0%, #202832 45%, #11161e 100%);
+    border:1px solid #47525f; border-radius:5px;
+    padding:11px 14px; color:var(--text); font-size:14px; cursor:pointer; text-align:left; transition:.12s;
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.2), inset 0 -2px 4px rgba(0,0,0,.55), 0 2px 5px rgba(0,0,0,.45); }
+  .toast .opt:hover { filter:brightness(1.15); border-color:var(--cyan); }
+  .toast .opt:active { transform:translateY(1px); }
+  .toast .opt .t { font-weight:700; }
+  .toast .opt .d { display:block; font-size:11px; color:var(--muted); margin-top:2px; }
+
+  /* —— 剧情 CG（全屏） —— */
+  .cg-wrap { position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:flex-end; }
+  .cg-imgbox { position:absolute; inset:0; overflow:hidden; background:#0a0e14; }
+  .cg-imgbox img { width:100%; height:100%; object-fit:cover; display:block; filter:brightness(.92); }
+  .cg-imgbox::after { content:''; position:absolute; inset:0; background:linear-gradient(180deg, rgba(5,6,8,.18) 0%, rgba(5,6,8,0) 30%, rgba(5,6,8,0) 55%, rgba(5,6,8,.92) 100%); }
+  /* 本章登场人物（剧情 CG 同步人物卡：左正派 / 右反派） */
+  .cg-cast { position:absolute; z-index:3; top:max(14px, env(safe-area-inset-top)); right:14px;
+    display:flex; gap:10px; align-items:flex-start; pointer-events:none; }
+  .cg-cast .cc { width:78px; display:flex; flex-direction:column; align-items:center; gap:4px;
+    animation:ccIn .5s ease both; }
+  .cg-cast .cc:nth-child(2) { animation-delay:.12s; }
+  .cg-cast .cc .cc-img { width:78px; height:108px; border-radius:6px; overflow:hidden;
+    border:1px solid var(--line2); background:#0b0f14; box-shadow:0 6px 20px rgba(0,0,0,.75); }
+  .cg-cast .cc .cc-img img { width:100%; height:100%; object-fit:cover; object-position:center 20%; display:block; }
+  .cg-cast .cc .cc-name { font-size:10px; letter-spacing:1px; color:var(--text);
+    text-shadow:0 1px 4px rgba(0,0,0,.95); white-space:nowrap; }
+  .cg-cast .cc .cc-role { font-size:9px; color:var(--muted); white-space:nowrap; }
+  .cg-cast .cc.ally .cc-img { border-color:#2f6b86; box-shadow:0 6px 20px rgba(0,0,0,.75), 0 0 14px rgba(60,200,255,.22); }
+  .cg-cast .cc.foe  .cc-img { border-color:#7d2f3e; box-shadow:0 6px 20px rgba(0,0,0,.75), 0 0 14px rgba(255,70,100,.22); }
+  .cg-cast .cc.foe .cc-name { color:#ffc9d2; }
+  @keyframes ccIn { from { opacity:0; transform:translateY(-10px); } to { opacity:1; transform:none; } }
+  @media (max-width:600px) {
+    .cg-cast { top:max(8px, env(safe-area-inset-top)); right:8px; gap:6px; }
+    .cg-cast .cc { width:54px; }
+    .cg-cast .cc .cc-img { width:54px; height:76px; }
+    .cg-cast .cc .cc-role { display:none; }
+  }
+  .cg-title { position:relative; z-index:2; font-size:22px; font-weight:800; letter-spacing:3px; color:var(--gold);
+    text-shadow:0 0 14px rgba(255,208,138,.5), 0 2px 6px rgba(0,0,0,.9); margin-bottom:12px; }
+  .cg-text { position:relative; z-index:2; width:min(680px,92vw); margin:0 auto 18px;
+    min-height:112px; font-size:15px; line-height:2; color:#eaf0fa; text-align:left;
+    text-shadow:0 1px 3px rgba(0,0,0,.95); }
+  .cg-text .typing-caret { color:var(--cyan); font-weight:700; animation:blink .6s steps(1) infinite; }
+  @keyframes blink { 50% { opacity:0; } }
+  /* 点击任意处继续：闪烁提示（无独立按钮） */
+  .cg-hint { position:relative; z-index:3; margin-bottom:max(26px, env(safe-area-inset-bottom));
+    font-size:13px; letter-spacing:3px; color:var(--text); text-shadow:0 1px 4px rgba(0,0,0,.9);
+    animation:cgHint 1.6s ease-in-out infinite; cursor:pointer; }
+  .cg-hint::before { content:'▸ '; color:var(--cyan); }
+  @keyframes cgHint { 0%,100% { opacity:.25; } 50% { opacity:.95; } }
+  /* —— 立绘预览（右半屏，窗口在左半屏，悬停时显示）——
+     注意：永远 pointer-events:none。否则预览层会盖住面板右半边的 −/＋ 按钮，
+     鼠标移过去时预览还挂着，点都点不动（"我没法加点"的元凶）。 */
+  .portrait-preview { position:fixed; top:0; right:0; bottom:0; left:50%; z-index:26;
+    pointer-events:none; display:flex; align-items:center; justify-content:center;
+    opacity:0; transition:opacity .18s ease; }
+  .portrait-preview.show { opacity:1; }
+  .portrait-preview .p-bg { position:absolute; inset:0; background:linear-gradient(270deg, rgba(5,6,8,.72), rgba(5,6,8,.25)); }
+  .portrait-preview img { position:relative; max-width:96%; max-height:94%; width:auto; height:auto;
+    object-fit:contain; filter:drop-shadow(0 14px 50px rgba(0,0,0,.9));
+    animation:portraitIn .22s ease; }
+  @keyframes portraitIn { from { transform:translateX(16px) scale(.97); opacity:.3; } to { transform:translateX(0) scale(1); opacity:1; } }
+  @media (max-width:760px) { .portrait-preview img { max-height:66vh; } }
+  /* —— 主角头像（经验条旁） —— */
+  .pilot-avatar { width:34px; height:34px; border-radius:50%; border:2px solid var(--cyan); overflow:hidden;
+    display:inline-block; vertical-align:middle; margin-right:6px; box-shadow:0 0 10px rgba(53,224,255,.4); }
+  .pilot-avatar img { width:100%; height:100%; object-fit:cover; }
+  .tag-cyan { color:var(--cyan); } .tag-purple { color:var(--purple); }
+  .tag-green { color:var(--green); } .tag-orange { color:var(--orange); } .tag-pink { color:var(--pink); }
+
+  /* —— 主页左上角：主角状态面板（头像放大 + 经验条 + 加成） —— */
+  .menu-topbar { position:absolute; top:0; left:0; z-index:3; padding:14px 16px;
+    padding-top:max(14px, env(safe-area-inset-top));
+    display:flex; align-items:center; gap:10px; text-align:left; }
+  .menu-topbar .pilot-avatar { width:56px; height:56px; border-radius:12px; border:2px solid var(--cyan);
+    flex:0 0 auto; margin-right:0; box-shadow:0 0 14px rgba(53,224,255,.5), inset 0 0 5px rgba(0,0,0,.55); }
+  .menu-topbar .pilot-info { display:flex; flex-direction:column; gap:4px; }
+  .menu-topbar .pilot-name { font-size:15px; font-weight:800; color:var(--text); letter-spacing:1px;
+    text-shadow:0 1px 3px rgba(0,0,0,.9); }
+  .menu-topbar .pilot-lv { font-size:12px; font-weight:700; color:var(--cyan); letter-spacing:.5px; }
+  .menu-topbar .expbar { width:min(150px,34vw); height:8px; background:#0d1219; border:1px solid #333d4d;
+    border-radius:5px; overflow:hidden; position:relative; }
+  .menu-topbar .expbar .fill { display:block; height:100%; width:0%;
+    background:linear-gradient(90deg,#4fd6ff,#2b9bff); border-radius:4px; transition:width .3s; }
+  .menu-topbar .exp-text { font-size:10px; color:var(--muted); letter-spacing:.3px; }
+  .menu-topbar .pilot-buffs { display:flex; flex-wrap:wrap; gap:4px; margin-top:2px; }
+  .menu-topbar .buff-tag { font-size:10px; font-weight:700; color:var(--gold); padding:2px 6px;
+    border:1px solid rgba(232,192,122,.4); border-radius:5px; background:rgba(232,192,122,.08); }
+
+  /* —— 战斗 HUD 左上角：主角头像 + 血条 + 经验条 + 加成 —— */
+  #hud .pilot-chip { display:flex; align-items:center; gap:8px; }
+  #hud .pilot-avatar { width:48px; height:48px; border-radius:10px; border:2px solid var(--cyan);
+    flex:0 0 auto; margin-right:0; box-shadow:0 0 12px rgba(53,224,255,.45); }
+  #hud .pilot-hud { display:flex; flex-direction:column; gap:3px; }
+  #hud .hud-hpbar { width:min(140px,32vw); height:9px; background:#0d1219; border:1px solid #333d4d;
+    border-radius:5px; overflow:hidden; position:relative; }
+  #hud .hud-hpbar .fill { display:block; height:100%; width:100%;
+    background:linear-gradient(90deg,#ff5d5d,#ff9a3c); border-radius:4px; transition:width .08s; }
+  #hud .hud-expbar { width:min(140px,32vw); height:6px; background:#0d1219; border:1px solid #333d4d;
+    border-radius:4px; overflow:hidden; }
+  #hud .hud-expbar .fill { display:block; height:100%; width:0%;
+    background:linear-gradient(90deg,#4fd6ff,#2b9bff); border-radius:3px; }
+  #hud .hud-meta { font-size:10px; color:var(--muted); letter-spacing:.3px; }
+
+  /* —— 失败画面 —— */
+  #defeatOvl { background:radial-gradient(ellipse at 50% 35%, rgba(80,10,16,.92) 0%, rgba(20,3,6,.97) 70%); }
+  #defeatOvl .defeat-title { font-size:44px; font-weight:900; letter-spacing:6px; color:var(--danger);
+    text-shadow:0 0 24px rgba(255,60,60,.55), 0 3px 6px rgba(0,0,0,.9); margin-bottom:4px; }
+  #defeatOvl .defeat-sub { font-size:13px; letter-spacing:3px; color:#b08a8f; margin-bottom:16px; }
+  #defeatOvl .defeat-icon { font-size:46px; margin-bottom:8px; filter:drop-shadow(0 0 12px rgba(255,60,60,.5)); }
+
+  /* ============================================================
+     金属装甲质感增强：铆钉 · 弹孔 · 裂痕 · 高光
+     —— 统一伪元素叠加层，z-index:-1 位于文字之下，不遮挡文本、不影响点击
+     ============================================================ */
+  :where(.btn, .menu-grid .cell, .toast .opt, .diff-btn, #hud .btn-s, .ui-item, .lv-btn) {
+    position: relative; isolation: isolate;
+    --rv-d: 6px;     /* 铆钉直径 */
+    --rv-in: 10px;   /* 铆钉距边缘 */
+    --hole: 7px;     /* 弹孔基准直径 */
+  }
+  /* 小尺寸控件整体缩小 */
+  :where(.diff-btn, #hud .btn-s, .close-btn) { --rv-d: 4.5px; --rv-in: 6px; --hole: 4px; }
+
+  /* —— 练习面板 −/＋ 微调键：小号金属装甲片（仅四角铆钉，无弹孔/裂痕）—— */
+  :where(.lv-btn) { --rv-d: 3.5px; --rv-in: 4px; --hole: 0px; }
+  .lv-btn {
+    flex:0 0 auto; width:26px; height:26px; padding:0; line-height:1; border-radius:4px; cursor:pointer;
+    color:var(--text); font-size:14px; font-weight:700; font-family:inherit;
+    background:
+      repeating-linear-gradient(90deg, rgba(255,255,255,.05) 0 1px, transparent 1px 3px),
+      linear-gradient(180deg,#3a4450 0%, #252d39 45%, #141a23 100%);
+    border:1px solid #4a5563;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.24), inset 0 -2px 4px rgba(0,0,0,.6),
+      0 1px 0 rgba(0,0,0,.5), 0 2px 5px rgba(0,0,0,.5);
+    transition: filter .12s, transform .1s, border-color .12s;
+  }
+  .lv-btn:hover { filter:brightness(1.2); border-color:var(--metal-edge); }
+  .lv-btn:active { transform:translateY(1px); border-color:var(--cyan);
+    box-shadow: inset 0 2px 5px rgba(0,0,0,.7), 0 0 10px rgba(79,214,255,.35); }
+
+  /* —— 铆钉 + 弹孔 + 斜向金属高光 —— */
+  :where(.btn, .menu-grid .cell, .toast .opt, .diff-btn, #hud .btn-s, .ui-item, .lv-btn)::before {
+    content:''; position:absolute; inset:0; z-index:-1; pointer-events:none;
+    border-radius:inherit;
+    background-repeat:no-repeat;
+    background-image:
+      /* 弹孔 1：穿透孔 + 外翻金属亮边 */
+      radial-gradient(circle at 50% 50%, rgba(0,0,0,.92) 0 34%, rgba(6,8,12,.86) 34% 50%, rgba(214,230,250,.34) 50% 62%, rgba(120,140,165,.16) 62% 76%, transparent 78%),
+      /* 弹孔 2 */
+      radial-gradient(circle at 50% 50%, rgba(0,0,0,.88) 0 32%, rgba(214,230,250,.27) 32% 52%, transparent 56%),
+      /* 弹孔 3 */
+      radial-gradient(circle at 50% 50%, rgba(0,0,0,.82) 0 28%, rgba(214,230,250,.2) 28% 48%, transparent 52%),
+      /* 铆钉 ×4（金属半球：亮顶 + 暗底） */
+      radial-gradient(circle at 42% 34%, #f4f8ff 0 12%, #ccd7e6 12% 30%, #96a4b6 30% 48%, #59636f 48% 68%, rgba(0,0,0,.62) 68% 100%),
+      radial-gradient(circle at 42% 34%, #f4f8ff 0 12%, #ccd7e6 12% 30%, #96a4b6 30% 48%, #59636f 48% 68%, rgba(0,0,0,.62) 68% 100%),
+      radial-gradient(circle at 42% 34%, #f4f8ff 0 12%, #ccd7e6 12% 30%, #96a4b6 30% 48%, #59636f 48% 68%, rgba(0,0,0,.62) 68% 100%),
+      radial-gradient(circle at 42% 34%, #f4f8ff 0 12%, #ccd7e6 12% 30%, #96a4b6 30% 48%, #59636f 48% 68%, rgba(0,0,0,.62) 68% 100%),
+      /* 底层：斜向金属光泽（拉丝反射） */
+      linear-gradient(102deg, rgba(255,255,255,.10) 0 16%, rgba(255,255,255,0) 32% 60%, rgba(255,255,255,.06) 80% 100%);
+    background-size:
+      var(--hole) var(--hole),
+      calc(var(--hole) * .72) calc(var(--hole) * .72),
+      calc(var(--hole) * .55) calc(var(--hole) * .55),
+      var(--rv-d) var(--rv-d), var(--rv-d) var(--rv-d), var(--rv-d) var(--rv-d), var(--rv-d) var(--rv-d),
+      100% 100%;
+    background-position:
+      67% 72%, 39% 27%, 57% 47%,
+      var(--rv-in) var(--rv-in),
+      calc(100% - var(--rv-in)) var(--rv-in),
+      var(--rv-in) calc(100% - var(--rv-in)),
+      calc(100% - var(--rv-in)) calc(100% - var(--rv-in)),
+      0 0;
+  }
+
+  /* —— 裂痕 + 划痕（弹片刮擦痕迹）—— */
+  :where(.btn:not(.close-btn), .menu-grid .cell, .toast .opt, .ui-item)::after {
+    content:''; position:absolute; inset:0; z-index:-1; pointer-events:none;
+    border-radius:inherit; opacity:.55;
+    background-repeat:no-repeat;
+    background-size:88% 76%;
+    background-position:6% 14%;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 44' preserveAspectRatio='none'%3E%3Cg fill='none' stroke-linecap='round'%3E%3Cpath d='M9 39 L24 25 L32 30 L50 11 L60 16' stroke='rgba(0,0,0,.6)' stroke-width='1.9'/%3E%3Cpath d='M24 25 L18 34' stroke='rgba(0,0,0,.5)' stroke-width='1.4'/%3E%3Cpath d='M50 11 L56 3' stroke='rgba(0,0,0,.45)' stroke-width='1.2'/%3E%3Cpath d='M9 39 L24 25 L32 30 L50 11 L60 16' stroke='rgba(226,238,255,.34)' stroke-width='.8'/%3E%3Cpath d='M24 25 L18 34' stroke='rgba(226,238,255,.24)' stroke-width='.6'/%3E%3Cpath d='M50 11 L56 3' stroke='rgba(226,238,255,.22)' stroke-width='.5'/%3E%3C/g%3E%3C/svg%3E");
+  }
+  /* 按下时划痕加深，强化"金属受压"手感 */
+  :where(.btn:not(.close-btn), .menu-grid .cell, .toast .opt, .ui-item):active::after { opacity:.75; }
+
+  /* ============================================================
+     购买/升级/修复成功提示（收银特效）—— 点击任意位置关闭
+     配色由 .k-buy / .k-upgrade / .k-repair 切换，默认金色
+     ============================================================ */
+  #successOvl {
+    z-index:60; overflow:hidden; cursor:pointer;
+    background:radial-gradient(circle at 50% 46%, rgba(46,32,10,.72) 0%, rgba(3,4,6,.9) 62%);
+    --s-hi:#fff8e2; --s-mid:#ffd989; --s-deep:#c9902f; --s-dark:#6b4310; --s-line:rgba(240,204,132,.5);
+  }
+  /* 修复成功：改为战术绿 */
+  #successOvl.k-repair {
+    background:radial-gradient(circle at 50% 46%, rgba(10,42,28,.72) 0%, rgba(3,4,6,.9) 62%);
+    --s-hi:#e6fff1; --s-mid:#8ef0bd; --s-deep:#35ad72; --s-dark:#0d3d28; --s-line:rgba(140,240,190,.5);
+  }
+
+  /* 金色冲击波（两圈错开扩散） */
+  #successOvl .s-wave {
+    position:absolute; left:50%; top:50%; width:46px; height:46px; margin:-23px 0 0 -23px;
+    border-radius:50%; border:2px solid var(--s-mid); pointer-events:none; z-index:4;
+    box-shadow:0 0 26px var(--s-deep), inset 0 0 20px rgba(255,220,150,.45);
+    animation:sWave .8s cubic-bezier(.16,.72,.3,1) both;
+  }
+  #successOvl .s-wave.w2 { animation-delay:.14s; border-width:1px; }
+  @keyframes sWave {
+    0%   { transform:scale(.15); opacity:.95; }
+    65%  { opacity:.42; }
+    100% { transform:scale(9.5); opacity:0; }
+  }
+
+  /* 金币粒子层 */
+  #successOvl .s-coins { position:absolute; inset:0; z-index:5; pointer-events:none; }
+  #successOvl .s-coin {
+    position:absolute; left:50%; top:47%; width:var(--sz,16px); height:var(--sz,16px);
+    margin:calc(var(--sz,16px) / -2) 0 0 calc(var(--sz,16px) / -2);
+    border-radius:50%;
+    background:radial-gradient(circle at 34% 30%, #fffbe8 0 18%, #ffd77a 18% 52%, #c9963a 52% 80%, #8a5f16 80% 100%);
+    box-shadow:inset 0 0 0 1px rgba(120,80,10,.55), 0 0 12px rgba(255,200,90,.9);
+    animation:sCoin var(--dur,1s) cubic-bezier(.22,.52,.55,1) var(--dly,0s) both;
+  }
+  @keyframes sCoin {
+    0%   { transform:translate(0,0) scale(.25) rotate(0deg); opacity:0; }
+    10%  { opacity:1; }
+    52%  { transform:translate(calc(var(--tx) * .66), calc(var(--ty) * .34 - 44px)) scale(1) rotate(200deg); opacity:1; }
+    100% { transform:translate(var(--tx), var(--ty)) scale(.5) rotate(430deg); opacity:0; }
+  }
+
+  /* 提示卡片 */
+  #successOvl .s-card {
+    position:relative; z-index:3;
+    width:min(320px,84vw);
+    padding:18px 22px 0; border-radius:12px; text-align:center;
+    background:
+      repeating-linear-gradient(90deg, rgba(255,255,255,.028) 0 1px, transparent 1px 3px),
+      linear-gradient(180deg,#241c11 0%, #171106 46%, #0b0803 100%);
+    border:1px solid var(--s-line);
+    box-shadow:
+      inset 0 1px 0 rgba(255,236,190,.32),
+      inset 0 -3px 9px rgba(0,0,0,.72),
+      0 0 0 3px rgba(232,192,122,.07),
+      0 20px 60px rgba(0,0,0,.82),
+      0 0 70px rgba(232,192,122,.16);
+    animation:sPop .44s cubic-bezier(.16,1.3,.4,1) both;
+  }
+  #successOvl.k-repair .s-card {
+    background:
+      repeating-linear-gradient(90deg, rgba(255,255,255,.028) 0 1px, transparent 1px 3px),
+      linear-gradient(180deg,#0f2419 0%, #0a1810 46%, #040a06 100%);
+    box-shadow:
+      inset 0 1px 0 rgba(200,255,225,.28),
+      inset 0 -3px 9px rgba(0,0,0,.72),
+      0 0 0 3px rgba(120,240,180,.07),
+      0 20px 60px rgba(0,0,0,.82),
+      0 0 70px rgba(110,240,180,.16);
+  }
+  @keyframes sPop {
+    0%   { transform:scale(.6) translateY(16px); opacity:0; }
+    58%  { opacity:1; }
+    100% { transform:scale(1) translateY(0); opacity:1; }
+  }
+
+  /* 徽章 */
+  #successOvl .s-medal {
+    width:54px; height:54px; margin:0 auto 11px; border-radius:50%;
+    display:flex; align-items:center; justify-content:center;
+    font-size:26px; line-height:1; text-shadow:0 2px 4px rgba(0,0,0,.6);
+    background:radial-gradient(circle at 34% 27%, var(--s-hi) 0 13%, var(--s-mid) 13% 44%, var(--s-deep) 44% 74%, var(--s-dark) 74% 100%);
+    border:2px solid rgba(255,240,205,.78);
+    box-shadow:0 0 20px rgba(255,200,110,.55), inset 0 -4px 9px rgba(0,0,0,.45);
+    animation:sMedal .6s .1s cubic-bezier(.16,1.45,.4,1) both;
+  }
+  @keyframes sMedal {
+    0%   { transform:scale(0) rotate(-150deg); opacity:0; }
+    100% { transform:scale(1) rotate(0deg); opacity:1; }
+  }
+
+  /* 标题：渐变艺术字 */
+  #successOvl .s-title {
+    font-size:21px; font-weight:900; font-style:italic; letter-spacing:3px;
+    background:linear-gradient(180deg, var(--s-hi) 0%, var(--s-mid) 32%, var(--s-deep) 62%, var(--s-dark) 100%);
+    -webkit-background-clip:text; background-clip:text;
+    -webkit-text-fill-color:transparent; color:transparent;
+    filter:drop-shadow(0 2px 0 rgba(0,0,0,.85)) drop-shadow(0 0 11px rgba(255,196,90,.5));
+  }
+  /* 标题左右装饰短线 */
+  #successOvl .s-title::before, #successOvl .s-title::after {
+    content:''; display:inline-block; vertical-align:middle;
+    width:20px; height:2px; margin:0 9px 3px;
+    background:linear-gradient(90deg, transparent, var(--s-mid));
+    box-shadow:0 0 6px var(--s-deep);
+  }
+  #successOvl .s-title::after { background:linear-gradient(90deg, var(--s-mid), transparent); }
+
+  /* 内容行 */
+  #successOvl .s-msg { font-size:13px; color:#ecdcc0; margin-top:9px; line-height:1.65; }
+  #successOvl.k-repair .s-msg { color:#cfe8da; }
+  #successOvl .s-msg b { color:var(--s-mid); }
+
+  /* 花费金币徽章 */
+  #successOvl .s-cost {
+    display:inline-flex; align-items:center; gap:5px; margin-top:11px;
+    padding:4px 12px; border-radius:20px; font-size:12.5px; font-weight:700;
+    color:#ffe3a3; background:linear-gradient(180deg, rgba(120,84,20,.55), rgba(40,26,6,.55));
+    border:1px solid var(--s-line);
+    box-shadow:inset 0 1px 0 rgba(255,230,180,.25);
+  }
+  #successOvl.k-repair .s-cost { color:#b6f5d4; background:linear-gradient(180deg, rgba(16,90,58,.5), rgba(5,26,17,.5)); }
+
+  /* 底部"点击任意位置关闭" */
+  #successOvl .s-tip {
+    margin-top:15px; padding:10px 0 12px;
+    font-size:11px; letter-spacing:2.5px; color:rgba(200,168,110,.9);
+    border-top:1px dashed var(--s-line);
+    animation:sBlink 1.7s ease-in-out infinite;
+  }
+  #successOvl.k-repair .s-tip { color:rgba(140,220,185,.9); }
+  #successOvl .s-tip .k { font-size:10px; letter-spacing:1px; opacity:.75; margin-left:6px; }
+  @keyframes sBlink { 0%,100%{ opacity:.55; } 50%{ opacity:1; } }
+</style>
+</head>
+<body>
+<canvas id="game"></canvas>
+
+<div id="hud">
+  <div class="L">
+    <div class="pilot-chip">
+      <span class="pilot-avatar"><img src="assets/portraits/pilot.png" alt="驾驶员"></span>
+      <div class="pilot-hud">
+        <span class="hud-hpbar"><span class="fill" id="hudHpFill" style="width:100%"></span></span>
+        <span class="hud-expbar"><span class="fill" id="hudExpFill" style="width:0%"></span></span>
+        <span class="hud-meta" id="hudMeta">Lv1 · 掉率 +0.3%</span>
+      </div>
+    </div>
+    <span style="margin-top:4px;">得分 <b id="score" style="color:var(--cyan)">0</b></span>
+    <span class="muted">最高 <span id="best">0</span></span>
+    <span class="muted">金币 <span id="gold" style="color:var(--gold)">0</span></span>
+    <span class="dailyBuff hidden" id="dailyBuff"></span>
+  </div>
+  <div class="R">
+    <span class="wave" id="waveLabel">第 1 关</span>
+    <span class="threat" id="threatLabel">威胁 1.0</span>
+  </div>
+</div>
+
+<div class="bossbar hidden" id="bossBar">
+  <div class="nm" id="bossName">首领</div>
+  <div class="bar">
+    <div class="fill" id="bossFill" style="width:100%"></div>
+    <div class="seg" style="left:33.3%"></div>
+    <div class="seg" style="left:66.6%"></div>
+  </div>
+</div>
+
+<button id="bombBtn">💣<span class="n" id="bombCount">3</span></button>
+<button id="arsenalBtn" class="hidden" title="装备调参（练习模式）">⚙</button>
+<!-- 右下角：关卡推进条（战机沿条推进）· 无尽进程提示 -->
+<div id="runProgress" class="hidden">
+  <div class="rp-head">
+    <span class="rp-label" id="rpLabel"></span>
+    <span class="rp-right" id="rpRight"></span>
+  </div>
+  <div class="rp-trackwrap">
+    <div class="rp-track">
+      <div class="rp-fill" id="rpFill"></div>
+      <div class="rp-boss"></div>
+      <div class="rp-sweep"></div>
+    </div>
+    <span class="rp-plane-wrap">
+      <svg class="rp-plane" viewBox="0 0 24 18" aria-hidden="true">
+        <path d="M23.2 9 L3 1 L7.6 9 L3 17 Z" fill="#f2fbff"/>
+        <path class="core" d="M15.4 9 L7.6 4.6 L10 9 L7.6 13.4 Z" fill="#4fd6ff"/>
+      </svg>
+    </span>
+  </div>
+</div>
+
+<div class="tip">拖动屏幕驾驶战机 · 武器自动开火 · 右下角炸弹</div>
+
+<div class="ovl" id="menu">
+  <div class="menu-bg"><img src="assets/menu_bg.png" alt="战场"></div>
+  <!-- 左上角：主角状态面板（头像放大 + 经验条 + 加成） -->
+  <div class="menu-topbar">
+    <span class="pilot-avatar"><img src="assets/portraits/pilot.png" alt="驾驶员"></span>
+    <div class="pilot-info">
+      <span class="pilot-name">驾驶员</span>
+      <span class="pilot-lv" id="menuLevel">Lv1</span>
+      <span class="expbar"><span class="fill" id="menuExpBar"></span></span>
+      <span class="exp-text" id="menuExpText"></span>
+      <span class="pilot-buffs">
+        <span class="buff-tag" id="menuDropBuff">掉率 +0.3%</span>
+        <span class="buff-tag" id="menuWearBuff">磨损 -1%</span>
+      </span>
+    </div>
+  </div>
+  <div class="title">苍蓝<em>余烬</em></div>
+  <div class="sub">AZURE EMBERS · v4 完整版</div>
+  <div class="menu-grid">
+    <div class="cell" id="mCampaign"><div class="ic"><svg viewBox="0 0 24 24" width="22" height="22"><path d="M12 2 L14 9 L21 7 L15 12 L21 17 L14 15 L12 22 L10 15 L3 17 L9 12 L3 7 L10 9 Z" fill="none" stroke="currentColor" stroke-width="1.6"/></svg></div><div class="t">故事模式</div><div class="s">12幕暗黑战役 · 每幕三星<br>三选一强化 · 武器进化</div></div>
+    <div class="cell" id="mEndless"><div class="ic"><svg viewBox="0 0 24 24" width="22" height="22"><path d="M7 9 C4 9 2 11 2 12 C2 13 4 15 7 15 C10 15 14 9 17 9 C20 9 22 11 22 12 C22 13 20 15 17 15" fill="none" stroke="currentColor" stroke-width="1.6"/></svg></div><div class="t">无限模式</div><div class="s">无尽波次 · 威胁攀升<br>冲刺最高分</div></div>
+    <div class="cell" id="mPractice"><div class="ic"><svg viewBox="0 0 24 24" width="22" height="22"><path d="M14 4 L20 10 L14 16 M10 4 L4 10 L10 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></div><div class="t">练习模式</div><div class="s">无敌 · 自定义装备<br>自由试手感</div></div>
+    <div class="cell" id="mDaily"><div class="ic"><svg viewBox="0 0 24 24" width="22" height="22"><rect x="4" y="5" width="16" height="15" rx="2" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M4 9 L20 9 M8 3 L8 7 M16 3 L16 7" stroke="currentColor" stroke-width="1.6"/></svg></div><div class="t">每日挑战</div><div class="s">5 个挑战各打一次<br><span id="dailyState">今日未挑战</span></div></div>
+  </div>
+  <div class="stat-line">最高分 <b id="menuBest">0</b> · 累计击杀 <b id="menuKills">0</b> · 进度 <b id="menuProgress">0/36</b></div>
+  <div class="stat-line">当前机型 <b id="menuShip" style="color:var(--cyan)">均衡型</b> · 金币 <b id="menuGold" style="color:var(--gold)">0</b></div>
+  <!-- 难度选择 -->
+  <div class="diff-row" id="diffRow">
+    <span class="diff-label">难度</span>
+    <span class="diff-hint" id="diffHint">普通 · 奖励 100%</span>
+  </div>
+  <div class="diff-row">
+    <button class="diff-btn" data-diff="0">简单</button>
+    <button class="diff-btn active" data-diff="1">普通</button>
+    <button class="diff-btn" data-diff="2">困难</button>
+    <button class="diff-btn" data-diff="3">地狱</button>
+  </div>
+  <!-- 底部功能栏 -->
+  <div class="menu-bottom">
+    <button class="btn bottom-btn" id="mSave"><svg viewBox="0 0 24 24" width="16" height="16"><path d="M4 5 L4 19 L20 19 L20 8 L17 5 Z" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M9 5 L9 10 L16 10" fill="none" stroke="currentColor" stroke-width="1.7"/><rect x="8" y="13" width="8" height="6" fill="none" stroke="currentColor" stroke-width="1.7"/></svg> 存档</button>
+    <button class="btn bottom-btn" id="mHangar"><svg viewBox="0 0 24 24" width="16" height="16"><path d="M12 3 L14 8 L21 8 L12 21 L3 8 L10 8 Z" fill="none" stroke="currentColor" stroke-width="1.7"/></svg> 机库</button>
+    <button class="btn bottom-btn" id="mShop"><svg viewBox="0 0 24 24" width="16" height="16"><circle cx="12" cy="12" r="8" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M12 6 L12 12 L16 14" fill="none" stroke="currentColor" stroke-width="1.7"/></svg> 商店</button>
+    <button class="btn bottom-btn" id="mAchieve"><svg viewBox="0 0 24 24" width="16" height="16"><path d="M12 2 L15 8 L21 9 L17 14 L18 20 L12 17 L6 20 L7 14 L3 9 L9 8 Z" fill="none" stroke="currentColor" stroke-width="1.7"/></svg> 成就</button>
+    <button class="btn bottom-btn" id="mRank"><svg viewBox="0 0 24 24" width="16" height="16"><path d="M5 20 L5 12 M12 20 L12 5 M19 20 L19 9" stroke="currentColor" stroke-width="1.7"/></svg> 排行</button>
+    <button class="btn bottom-btn" id="mWing"><svg viewBox="0 0 24 24" width="16" height="16"><path d="M12 3 L14 9 L20 9 L12 21 L4 9 L10 9 Z" fill="none" stroke="currentColor" stroke-width="1.7"/></svg> 僚机</button>
+  </div>
+</div>
+
+<div class="ovl hidden" id="levelSelect">
+  <div class="toast panel" style="position:relative;top:auto;left:auto;transform:none;max-height:90vh;overflow:auto;width:min(400px,94vw);">
+    <button class="btn close-btn" id="levelBack">✕</button>
+    <div class="title" style="font-size:26px">选择关卡</div>
+    <div class="sub" id="levelStars">已获得 ★ 0 / 36</div>
+    <div id="levelGrid" style="display:grid;grid-template-columns:repeat(4,1fr);gap:9px;width:100%;max-width:340px;margin:10px auto 14px;"></div>
+    <div class="row">
+      <button class="btn" id="resetProg" style="width:auto;padding:10px 20px;color:var(--danger);">重置进度</button>
+    </div>
+  </div>
+</div>
+
+<div class="ovl hidden" id="pauseMenu">
+  <div class="title" style="font-size:26px">已暂停</div>
+  <button class="btn primary" id="resumeBtn">继续</button>
+  <button class="btn hidden" id="pauseArsenalBtn">⚙ 装备调参</button>
+  <button class="btn" id="pauseWeaponBtn">武器</button>
+  <button class="btn" id="restartBtn">重新开始</button>
+  <button class="btn" id="quitBtn">返回主菜单</button>
+  <div class="pause-volume">
+    <div class="pv-row">
+      <span class="pv-label">🎵 音乐</span>
+      <input type="range" class="pv-slider" id="musicVolSlider" min="0" max="100" value="70">
+      <span class="pv-val" id="musicVolVal">70%</span>
+    </div>
+    <div class="pv-row">
+      <span class="pv-label">🔊 音效</span>
+      <input type="range" class="pv-slider" id="sfxVolSlider" min="0" max="100" value="70">
+      <span class="pv-val" id="sfxVolVal">70%</span>
+    </div>
+  </div>
+</div>
+
+<!-- 剧情 CG 播放 -->
+<div class="ovl hidden" id="cgOvl">
+  <div class="cg-wrap">
+    <div class="cg-imgbox"><img id="cgImg" src="" alt="CG"></div>
+    <div class="cg-cast" id="cgCast"></div>
+    <div class="cg-title" id="cgTitle"></div>
+    <div class="cg-text" id="cgText"></div>
+    <div class="cg-hint" id="cgHint">点击任意处继续</div>
+  </div>
+</div>
+
+<div class="ovl hidden" id="defeatOvl">
+  <div class="defeat-icon">💥</div>
+  <div class="defeat-title">战机坠毁</div>
+  <div class="defeat-sub">MISSION FAILED</div>
+  <div class="sub" id="defeatWave" style="margin-bottom:10px;">第 1 关</div>
+  <div style="margin:6px 0;">
+    <div style="font-size:38px;font-weight:800;color:var(--danger);text-shadow:0 0 14px rgba(255,60,60,.4);" id="defeatScore">0</div>
+    <div class="stat-line">本局得分 · 击杀 <b id="defeatKills">0</b></div>
+    <div class="stat-line">历史最高 <b id="defeatBest">0</b></div>
+  </div>
+  <div style="width:100%;max-width:300px;background:linear-gradient(180deg,#2a1216,#120609);border:1px solid #5a2530;border-radius:12px;padding:12px 16px;margin:4px auto;text-align:left;">
+    <div style="font-size:12px;color:var(--danger);font-weight:700;margin-bottom:6px;">💀 战损统计</div>
+    <div id="defeatRewards" style="font-size:12.5px;color:var(--text);line-height:1.9;"></div>
+  </div>
+  <button class="btn primary" id="defeatAgainBtn" style="margin-top:12px;">重新出击</button>
+  <button class="btn" id="defeatMenuBtn">返回主菜单</button>
+</div>
+
+<div class="ovl hidden" id="gameOver">
+  <div class="title" id="overTitle" style="font-size:30px;color:var(--danger)">战机被击毁</div>
+  <div class="sub" id="overWave">第 1 关</div>
+  <div id="overStars" style="font-size:30px;letter-spacing:6px;margin:4px 0;min-height:36px;color:var(--gold);text-shadow:0 0 10px rgba(255,208,138,.5);"></div>
+  <div style="margin:8px 0;">
+    <div style="font-size:40px;font-weight:800;color:var(--gold)" id="overScore">0</div>
+    <div class="stat-line">本局得分</div>
+    <div class="stat-line">历史最高 <b id="overBest">0</b> · 击杀 <b id="overKills">0</b></div>
+  </div>
+  <div style="width:100%;max-width:300px;background:linear-gradient(180deg,#1b222d,#0d1219);border:1px solid #333d4d;border-radius:12px;padding:12px 16px;margin:4px auto;text-align:left;box-shadow:inset 0 1px 0 rgba(255,255,255,.08);">
+    <div style="font-size:12px;color:var(--gold);font-weight:700;margin-bottom:6px;">💰 本局奖励</div>
+    <div id="overRewards" style="font-size:12.5px;color:var(--text);line-height:1.9;"></div>
+    <div style="font-size:13px;font-weight:800;color:var(--gold);border-top:1px solid #333d4d;margin-top:6px;padding-top:6px;">合计 <span id="overGold" style="color:var(--gold)">+0</span> 金币</div>
+    <div id="overWear" style="font-size:11px;color:var(--orange);margin-top:4px;"></div>
+  </div>
+  <button class="btn primary" id="againBtn" style="margin-top:12px;">前往商店整顿</button>
+  <button class="btn" id="overMenuBtn">返回主菜单</button>
+</div>
+
+<div class="ovl hidden" id="upgradeOvl">
+  <div class="toast panel" style="position:relative;top:auto;left:auto;transform:none;">
+    <h3>关卡完成 · 选择一项强化</h3>
+    <p id="upgradeSub"></p>
+    <div class="opts" id="upgradeOpts"></div>
+  </div>
+</div>
+
+<div class="ovl hidden" id="weaponPanel">
+  <div class="toast panel" style="position:relative;top:auto;left:auto;transform:none;max-height:82vh;overflow:auto;">
+    <button class="btn close-btn" id="weaponClose">✕</button>
+    <h3>武器面板</h3>
+    <div id="weaponList" style="text-align:left;font-size:13px;"></div>
+    <p style="margin-top:10px;font-size:11px;color:var(--dim);">附魔：穿透 / 连锁 / 减速 / 爆炸</p>
+  </div>
+</div>
+
+<div class="ovl hidden half-ovl" id="practiceOvl">
+  <div class="prac-art">
+    <img id="practiceArtImg" src="assets/portraits/mechanic.png" alt="">
+    <div class="pa-cap"><b id="practiceArtName">老韩</b><span id="practiceArtRole">随舰机械师 · 本场陪练</span>
+      <span style="margin-top:2px;">悬停左侧项目 · 右侧放大看立绘</span></div>
+  </div>
+  <div class="toast panel half-panel prac-panel">
+    <button class="btn close-btn" id="practiceClose">✕</button>
+    <h3>🛠️ 练习 · 自定义装备</h3>
+    <p>自由设定武器与附魔等级，进入后无敌试玩（不结算金币）</p>
+    <div id="practiceWeapons" class="ed-list"></div>
+    <div class="sec-t">附魔等级</div>
+    <div id="practiceEnchants" class="ed-list"></div>
+    <div class="sec-t">僚机编队</div>
+    <div id="practiceWingman" class="ed-list"></div>
+    <div class="prac-foot"><button class="btn primary" id="practiceStart">开始练习</button></div>
+  </div>
+</div>
+
+<!-- 练习模式 · 战斗内实时调参（暂停时打开，返回即生效） -->
+<div class="ovl hidden half-ovl" id="arsenalOvl">
+  <div class="prac-art">
+    <img id="arsenalArtImg" src="assets/portraits/mechanic.png" alt="">
+    <div class="pa-cap"><b id="arsenalArtName">老韩</b><span id="arsenalArtRole">随舰机械师 · 场边待命</span>
+      <span style="margin-top:2px;">悬停左侧项目 · 右侧放大看立绘</span></div>
+  </div>
+  <div class="toast panel half-panel prac-panel">
+    <button class="btn close-btn" id="arsenalClose">✕</button>
+    <h3>⚙ 装备调参 · 实时生效</h3>
+    <p>战斗中随时改武器 / 附魔 / 僚机，返回战场立即生效</p>
+    <div id="arsenalWeapons" class="ed-list"></div>
+    <div class="sec-t">附魔等级</div>
+    <div id="arsenalEnchants" class="ed-list"></div>
+    <div class="sec-t">僚机编队</div>
+    <div id="arsenalWingman" class="ed-list"></div>
+    <div class="prac-foot"><button class="btn primary" id="arsenalResume">返回战斗</button></div>
+  </div>
+</div>
+
+<div class="ovl hidden" id="dailyOvl">
+  <div class="toast panel" style="position:relative;top:auto;left:auto;transform:none;max-height:90vh;overflow:auto;width:min(400px,94vw);">
+    <button class="btn close-btn" id="dailyClose">✕</button>
+    <h3>📅 每日挑战</h3>
+    <p id="dailyHint" style="font-size:11px;color:var(--muted);margin-bottom:10px;">每日刷新 · 每个挑战当天各可挑战一次 · 敌人来自同一战场的支线人物</p>
+    <div id="dailyList" style="text-align:left;display:flex;flex-direction:column;gap:9px;"></div>
+  </div>
+</div>
+
+<div class="ovl hidden" id="achieveOvl">
+  <div class="toast panel" style="position:relative;top:auto;left:auto;transform:none;max-height:82vh;overflow:auto;width:min(360px,90vw);">
+    <button class="btn close-btn" id="achieveClose">✕</button>
+    <h3>🏆 成就</h3>
+    <div id="achieveList" style="text-align:left;font-size:13px;"></div>
+  </div>
+</div>
+
+<!-- 存档管理 · 六个独立存档槽 -->
+<div class="ovl hidden" id="saveOvl">
+  <div class="toast panel" style="position:relative;top:auto;left:auto;transform:none;max-height:88vh;overflow:auto;width:min(430px,94vw);">
+    <button class="btn close-btn" id="saveClose">✕</button>
+    <h3>💾 存档管理</h3>
+    <p style="font-size:11px;color:var(--muted);margin-bottom:10px;">6 个独立存档 · 读取 / 覆盖 / 删除 · 切换后自动重新载入</p>
+    <div id="saveList" style="text-align:left;display:flex;flex-direction:column;gap:8px;"></div>
+  </div>
+</div>
+
+<!-- 机库：选择机型 -->
+<div class="ovl hidden half-ovl" id="hangarOvl">
+  <div class="toast panel half-panel" style="position:relative;top:auto;left:auto;transform:none;">
+    <button class="btn close-btn" id="hangarClose">✕</button>
+    <h3>🛩️ 机库 · 选择机型</h3>
+    <div class="stat-line" style="margin:0 0 10px;">金币 <b id="hangarGold" style="color:var(--gold)">0</b></div>
+    <div id="shipList" style="text-align:left;display:flex;flex-direction:column;gap:8px;"></div>
+  </div>
+</div>
+
+<!-- 商店：永久升级 + 修复磨损 -->
+<div class="ovl hidden half-ovl" id="shopOvl">
+  <div class="toast panel half-panel" style="position:relative;top:auto;left:auto;transform:none;">
+    <button class="btn close-btn" id="shopClose">✕</button>
+    <h3>💰 商店 · 战机整顿</h3>
+    <div style="display:flex;align-items:center;gap:10px;margin:4px 0 8px;text-align:left;">
+      <div style="flex:0 0 56px;width:56px;height:56px;border-radius:10px;border:1px solid #333d4d;overflow:hidden;box-shadow:0 4px 16px rgba(0,0,0,.6);"><img src="assets/portraits/mechanic.png" alt="整备员" style="width:100%;height:100%;object-fit:cover;display:block;"></div>
+      <div style="flex:1;">
+        <div style="font-size:13px;font-weight:700;color:var(--gold);">整备员 · 老兵</div>
+        <div style="font-size:11px;color:var(--muted);line-height:1.5;">"又飞回来一架……行，我给你把这老伙计拾掇好。钱放柜台上。"</div>
+      </div>
+    </div>
+    <div class="stat-line" style="margin:0 0 4px;">金币 <b id="shopGold" style="color:var(--gold)">0</b></div>
+    <div class="stat-line" style="margin:0 0 10px;">当前机型：<b id="shopShip" style="color:var(--cyan)">均衡型</b></div>
+    <div style="text-align:left;font-size:12px;color:var(--muted);margin-bottom:6px;" id="shopWear"></div>
+    <div id="shopBody" style="text-align:left;display:flex;flex-direction:column;gap:7px;"></div>
+  </div>
+</div>
+
+<!-- 立绘预览浮层（悬停时机库/商店项时显示，移开即消失） -->
+<div class="portrait-preview" id="portraitPreview"><div class="p-bg"></div></div>
+
+<!-- 确认弹窗 -->
+<div class="ovl hidden" id="confirmOvl" style="z-index:30;">
+  <div class="toast panel" style="position:relative;top:auto;left:auto;transform:none;width:min(320px,84vw);">
+    <h3 id="confirmTitle">确认</h3>
+    <p id="confirmMsg" style="font-size:13px;color:var(--text);line-height:1.7;margin:6px 0 14px;"></p>
+    <div class="row">
+      <button class="btn" id="confirmYes" style="width:auto;padding:11px 24px;">确定</button>
+      <button class="btn" id="confirmNo" style="width:auto;padding:11px 24px;">取消</button>
+    </div>
+  </div>
+</div>
+
+<!-- 购买/升级/修复成功提示（收银特效；点击任意位置关闭） -->
+<div class="ovl hidden" id="successOvl">
+  <div class="s-wave"></div>
+  <div class="s-wave w2"></div>
+  <div class="s-coins" id="successCoins"></div>
+  <div class="s-card">
+    <div class="s-medal" id="successIcon">💰</div>
+    <div class="s-title" id="successTitle">购买成功</div>
+    <div class="s-msg" id="successMsg"></div>
+    <div id="successCostWrap" style="display:none;"><span class="s-cost" id="successCost"></span></div>
+    <div class="s-tip">点击任意位置关闭<span class="k">（Esc / 空格）</span></div>
+  </div>
+</div>
+
+<script src="gunner.js"></script>
+<!-- 存档码：离线跨设备同步（独立文件，不侵入 gunner.js） -->
+<script src="savecode.js"></script>
+</body>
+</html>

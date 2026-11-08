@@ -1,0 +1,40 @@
+appId: com.azureembers.desktop
+productName: 苍蓝余烬
+extraMetadata:
+  name: stellar-gunner
+  main: main-shooter.js
+  author: 苍蓝余烬
+directories:
+  output: installer
+# 直接用仓库里已装好的 electron 31.7.7，不再联网下载一份
+electronDist: node_modules/electron/dist
+# 白名单：只打包游戏本体，测试脚本/备份/web 都不进包
+files:
+  - 星际射手.html
+  - gunner.js
+  - savecode.js
+  - main-shooter.js
+  - assets/**/*
+  - "!assets/ships/top_down_view_of_a_massive_bos_*"
+asar: true
+compression: maximum
+win:
+  target:
+    - target: nsis
+      arch:
+        - x64
+  icon: assets/icon_shooter.ico
+  executableName: AzureEmbers
+nsis:
+  oneClick: false
+  perMachine: false
+  allowToChangeInstallationDirectory: true
+  createDesktopShortcut: true
+  createStartMenuShortcut: true
+  shortcutName: 苍蓝余烬
+  artifactName: 苍蓝余烬-Setup-${version}.exe
+  installerIcon: assets/icon_shooter.ico
+  uninstallerIcon: assets/icon_shooter.ico
+  installerHeaderIcon: assets/icon_shooter.ico
+  deleteAppDataOnUninstall: false
+  runAfterFinish: false

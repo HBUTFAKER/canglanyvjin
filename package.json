@@ -1,0 +1,14 @@
+{
+  "name": "canglanyvjin",
+  "version": "1.0.0",
+  "description": "苍蓝余烬 Azure Embers - Electron 桌面弹幕射击游戏",
+  "main": "main-shooter.js",
+  "scripts": {
+    "start": "electron .",
+    "pack": "electron-builder --win"
+  },
+  "devDependencies": {
+    "electron": "^31.7.7",
+    "electron-builder": "^26.15.3"
+  }
+}

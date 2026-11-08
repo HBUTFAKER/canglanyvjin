@@ -1,0 +1,30 @@
+# 依赖
+node_modules/
+
+# 打包产物
+dist-final/
+dist-installer/
+installer/
+*.exe
+*.msi
+*.blockmap
+*.asar
+
+# web 发布副本（assets 已由根目录 assets/ 提供）
+web/
+
+# 素材原始/中间文件
+_bgraw/
+_bossraw/
+_chars/
+_wmraw/
+_tmpimg/
+_testprofile/
+
+# 工具与临时
+.workbuddy/
+.wbapp_*.genie
+.tmp/
+*.log
+Thumbs.db
+desktop.ini
